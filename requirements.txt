@@ -1,0 +1,19 @@
+# Core
+torch>=2.1.0
+torchvision
+accelerate>=0.30.0
+transformers>=4.42.0
+diffusers>=0.30.0
+safetensors>=0.4.3
+datasets>=2.19.0
+opencv-python
+pillow
+
+# Optional VRAM helpers
+xformers
+
+# UI
+streamlit>=1.36.0
+
+# (Optional) optimizer
+bitsandbytes>=0.43.0
