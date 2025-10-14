@@ -1,0 +1,13 @@
+2025-10-14 12:38:32,380 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-14 12:38:32,382 - ERROR - LCM-LoRA load failed: PEFT backend is required for this method.
+2025-10-14 12:38:32,384 - ERROR - Custom LoRA failed: PEFT backend is required for this method.
+2025-10-14 12:38:33,852 - WARNING - Xet Storage is enabled for this repo, but the 'hf_xet' package is not installed. Falling back to regular HTTP download. For better performance, install the package with: `pip install huggingface_hub[hf_xet]` or `pip install hf_xet`
+2025-10-14 12:41:43,770 - ERROR - Generation failed: PEFT backend is required for `set_adapters()`.
+2025-10-14 12:41:57,209 - ERROR - Generation failed: PEFT backend is required for `set_adapters()`.
+2025-10-14 12:46:55,524 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-14 12:46:55,748 - WARNING - Xet Storage is enabled for this repo, but the 'hf_xet' package is not installed. Falling back to regular HTTP download. For better performance, install the package with: `pip install huggingface_hub[hf_xet]` or `pip install hf_xet`
+2025-10-14 13:32:27,302 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-14 13:42:34,302 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-14 13:43:49,673 - ERROR - Generation failed: 
+2025-10-14 13:54:00,118 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-14 14:03:41,180 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
