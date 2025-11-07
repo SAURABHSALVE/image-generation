@@ -21,22 +21,14 @@ if env_path.exists():
 import time
 import torch
 import streamlit as st
-from diffusers import (
-    StableDiffusionPipeline, 
-    StableDiffusionImg2ImgPipeline,
-    DPMSolverMultistepScheduler,
-    EulerAncestralDiscreteScheduler,
-    DDIMScheduler
-)
+from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline, LCMScheduler
 from PIL import Image, ImageEnhance, ImageFilter
 import io
 import base64
 import logging
-from transformers import CLIPImageProcessor, CLIPVisionModelWithProjection
-from huggingface_hub import InferenceClient
 import numpy as np
 import cv2
-import tempfile
+import random
 
 # Configuration
 HF_TOKEN = os.environ.get("HF_TOKEN", "")
@@ -45,12 +37,12 @@ logging.basicConfig(filename="app_errors.log", level=logging.ERROR,
 
 # Page config
 st.set_page_config(
-    page_title="Advanced AI Image Studio - College Project",
+    page_title="AI Image Studio - Fast Edition",
     page_icon="🎨",
     layout="wide"
 )
 
-# Enhanced CSS with modern design
+# Enhanced CSS
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -60,14 +52,6 @@ st.markdown("""
 .stApp {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     background-attachment: fixed;
-}
-
-.main-container {
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 20px;
-    padding: 2rem;
-    margin: 1rem;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
 }
 
 .title-gradient {
@@ -111,20 +95,6 @@ st.markdown("""
     box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
 }
 
-.image-card {
-    background: white;
-    border-radius: 16px;
-    padding: 1rem;
-    margin: 1rem 0;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
-    transition: transform 0.3s ease;
-}
-
-.image-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 12px 40px rgba(0,0,0,0.2);
-}
-
 .metric-card {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
@@ -146,112 +116,45 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Advanced Model Loading with Multiple Options
+# Fast Model Loading - LCM ONLY
 @st.cache_resource(show_spinner=False)
-def load_models(model_choice="sd-v1-5"):
-    """Load AI models with advanced schedulers and optimizations"""
+def load_models():
+    """Load LCM model - 10x faster than SD v1.5"""
     models = {}
     status_messages = []
     
-    common_args = {
-        "torch_dtype": torch.float32,
-        "use_safetensors": True,
-        "safety_checker": None,
-        "requires_safety_checker": False,
-        "low_cpu_mem_usage": True
-    }
-    
     try:
-        if model_choice == "lcm":
-            status_messages.append(("info", "Loading LCM (Latent Consistency Model) - FASTEST..."))
-            
-            # LCM is 10x faster - only needs 4-8 steps!
-            from diffusers import LCMScheduler
-            
-            base_pipe = StableDiffusionPipeline.from_pretrained(
-                "SimianLuo/LCM_Dreamshaper_v7",
-                **common_args
-            ).to("cpu")
-            
-            # LCM scheduler - super fast
-            base_pipe.scheduler = LCMScheduler.from_config(base_pipe.scheduler.config)
-            
-            # Memory optimizations
-            base_pipe.enable_vae_tiling()
-            base_pipe.enable_attention_slicing(slice_size=1)
-            
-            models['txt2img'] = base_pipe
-            models['img2img'] = StableDiffusionImg2ImgPipeline(**base_pipe.components)
-            
-            status_messages.append(("success", "✅ LCM loaded (10x faster - only needs 4-8 steps!)"))
-            
-        elif model_choice == "sd-v1-5":
-            status_messages.append(("info", "Loading Stable Diffusion v1.5..."))
-            
-            # Load base pipeline
-            base_pipe = StableDiffusionPipeline.from_pretrained(
-                "runwayml/stable-diffusion-v1-5",
-                **common_args
-            ).to("cpu")
-            
-            # Use advanced scheduler for better quality
-            base_pipe.scheduler = DPMSolverMultistepScheduler.from_config(
-                base_pipe.scheduler.config,
-                use_karras_sigmas=True,
-                algorithm_type="dpmsolver++",
-                solver_order=2
-            )
-            
-            # Memory optimizations
-            base_pipe.enable_vae_tiling()
-            base_pipe.enable_attention_slicing(slice_size=1)
-            
-            models['txt2img'] = base_pipe
-            models['img2img'] = StableDiffusionImg2ImgPipeline(**base_pipe.components)
-            
-            status_messages.append(("success", "✅ SD v1.5 loaded with DPM++ scheduler"))
-            
-        elif model_choice == "realistic-vision":
-            status_messages.append(("info", "Loading Realistic Vision v5.1..."))
-            
-            base_pipe = StableDiffusionPipeline.from_pretrained(
-                "SG161222/Realistic_Vision_V5.1_noVAE",
-                **common_args
-            ).to("cpu")
-            
-            base_pipe.scheduler = DPMSolverMultistepScheduler.from_config(
-                base_pipe.scheduler.config,
-                use_karras_sigmas=True
-            )
-            
-            base_pipe.enable_vae_tiling()
-            base_pipe.enable_attention_slicing(slice_size=1)
-            
-            models['txt2img'] = base_pipe
-            models['img2img'] = StableDiffusionImg2ImgPipeline(**base_pipe.components)
-            
-            status_messages.append(("success", "✅ Realistic Vision loaded (photorealistic)"))
-            
-        elif model_choice == "dreamshaper":
-            status_messages.append(("info", "Loading DreamShaper v8..."))
-            
-            base_pipe = StableDiffusionPipeline.from_pretrained(
-                "Lykon/DreamShaper",
-                **common_args
-            ).to("cpu")
-            
-            base_pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(
-                base_pipe.scheduler.config
-            )
-            
-            base_pipe.enable_vae_tiling()
-            base_pipe.enable_attention_slicing(slice_size=1)
-            
-            models['txt2img'] = base_pipe
-            models['img2img'] = StableDiffusionImg2ImgPipeline(**base_pipe.components)
-            
-            status_messages.append(("success", "✅ DreamShaper loaded (artistic)"))
-            
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+        
+        status_messages.append(("info", f"Loading LCM model on {device.upper()}..."))
+        
+        # Load LCM - super fast model
+        base_pipe = StableDiffusionPipeline.from_pretrained(
+            "SimianLuo/LCM_Dreamshaper_v7",
+            torch_dtype=dtype,
+            use_safetensors=True,
+            safety_checker=None,
+            requires_safety_checker=False,
+            low_cpu_mem_usage=True
+        ).to(device)
+        
+        # LCM scheduler - only needs 4-8 steps!
+        base_pipe.scheduler = LCMScheduler.from_config(base_pipe.scheduler.config)
+        
+        # Memory optimizations
+        base_pipe.enable_vae_tiling()
+        base_pipe.enable_attention_slicing(slice_size=1)
+        
+        if device == "cuda":
+            base_pipe.enable_vae_slicing()
+        
+        models['txt2img'] = base_pipe
+        models['img2img'] = StableDiffusionImg2ImgPipeline(**base_pipe.components)
+        models['device'] = device
+        
+        status_messages.append(("success", f"✅ LCM loaded on {device.upper()} (10x faster - only needs 4-8 steps!)"))
+        
     except Exception as e:
         logging.error(f"Model loading failed: {e}")
         status_messages.append(("error", f"Failed to load model: {e}"))
@@ -259,128 +162,53 @@ def load_models(model_choice="sd-v1-5"):
     
     return models, status_messages
 
-@st.cache_resource
-def load_clip_model():
-    """Load CLIP for advanced prompt analysis"""
-    processor = CLIPImageProcessor.from_pretrained("openai/clip-vit-large-patch14")
-    model = CLIPVisionModelWithProjection.from_pretrained("openai/clip-vit-large-patch14").to("cpu")
-    return processor, model
-
-# Advanced Image Processing Functions
-def advanced_upscale(image, scale_factor=2, method="lanczos"):
-    """Advanced upscaling with multiple methods"""
-    new_size = (int(image.width * scale_factor), int(image.height * scale_factor))
+# Image Processing Functions
+def enhance_image(image, brightness=1.0, contrast=1.0, saturation=1.0, sharpness=1.0):
+    """Fast image enhancement"""
+    if brightness != 1.0:
+        enhancer = ImageEnhance.Brightness(image)
+        image = enhancer.enhance(brightness)
     
-    if method == "lanczos":
-        return image.resize(new_size, Image.Resampling.LANCZOS)
-    elif method == "bicubic":
-        return image.resize(new_size, Image.Resampling.BICUBIC)
-    else:
-        return image.resize(new_size, Image.Resampling.LANCZOS)
+    if contrast != 1.0:
+        enhancer = ImageEnhance.Contrast(image)
+        image = enhancer.enhance(contrast)
+    
+    if saturation != 1.0:
+        enhancer = ImageEnhance.Color(image)
+        image = enhancer.enhance(saturation)
+    
+    if sharpness != 1.0:
+        enhancer = ImageEnhance.Sharpness(image)
+        image = enhancer.enhance(sharpness)
+    
+    return image
 
-def apply_style_transfer(image, style="none"):
+def apply_style_filter(image, style="none"):
     """Apply artistic style filters"""
+    if style == "none":
+        return image
+    
+    img_array = np.array(image)
+    
     if style == "oil_painting":
-        # Simulate oil painting effect
-        img_array = np.array(image)
         img_array = cv2.bilateralFilter(img_array, 9, 75, 75)
-        return Image.fromarray(img_array)
-    
     elif style == "watercolor":
-        # Simulate watercolor effect
-        img_array = np.array(image)
         img_array = cv2.stylization(img_array, sigma_s=60, sigma_r=0.6)
-        return Image.fromarray(img_array)
-    
     elif style == "pencil_sketch":
-        # Create pencil sketch effect
-        img_array = np.array(image)
         gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
         inv = 255 - gray
         blur = cv2.GaussianBlur(inv, (21, 21), 0)
         sketch = cv2.divide(gray, 255 - blur, scale=256)
-        sketch_rgb = cv2.cvtColor(sketch, cv2.COLOR_GRAY2RGB)
-        return Image.fromarray(sketch_rgb)
-    
+        img_array = cv2.cvtColor(sketch, cv2.COLOR_GRAY2RGB)
     elif style == "cartoon":
-        # Create cartoon effect
-        img_array = np.array(image)
         gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
         gray = cv2.medianBlur(gray, 5)
         edges = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, 
                                       cv2.THRESH_BINARY, 9, 9)
         color = cv2.bilateralFilter(img_array, 9, 300, 300)
-        cartoon = cv2.bitwise_and(color, color, mask=edges)
-        return Image.fromarray(cartoon)
+        img_array = cv2.bitwise_and(color, color, mask=edges)
     
-    return image
-
-def enhance_image_advanced(image, brightness=1.0, contrast=1.0, saturation=1.0, 
-                          sharpness=1.0, denoise=False):
-    """Advanced image enhancement with multiple parameters"""
-    # Brightness
-    if brightness != 1.0:
-        enhancer = ImageEnhance.Brightness(image)
-        image = enhancer.enhance(brightness)
-    
-    # Contrast
-    if contrast != 1.0:
-        enhancer = ImageEnhance.Contrast(image)
-        image = enhancer.enhance(contrast)
-    
-    # Color saturation
-    if saturation != 1.0:
-        enhancer = ImageEnhance.Color(image)
-        image = enhancer.enhance(saturation)
-    
-    # Sharpness
-    if sharpness != 1.0:
-        enhancer = ImageEnhance.Sharpness(image)
-        image = enhancer.enhance(sharpness)
-    
-    # Denoise
-    if denoise:
-        img_array = np.array(image)
-        img_array = cv2.fastNlMeansDenoisingColored(img_array, None, 10, 10, 7, 21)
-        image = Image.fromarray(img_array)
-    
-    return image
-
-def create_image_grid(images, cols=2):
-    """Create a grid of images"""
-    if not images:
-        return None
-    
-    rows = (len(images) + cols - 1) // cols
-    w, h = images[0].size
-    grid = Image.new('RGB', (w * cols, h * rows), color='white')
-    
-    for idx, img in enumerate(images):
-        row = idx // cols
-        col = idx % cols
-        grid.paste(img, (col * w, row * h))
-    
-    return grid
-
-def extract_first_frame(video_bytes):
-    """Extract first frame from video"""
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_file:
-        temp_file.write(video_bytes)
-        temp_path = temp_file.name
-    
-    cap = cv2.VideoCapture(temp_path)
-    if not cap.isOpened():
-        raise ValueError("Could not open video file")
-    
-    success, frame = cap.read()
-    cap.release()
-    os.unlink(temp_path)
-    
-    if not success:
-        raise ValueError("Could not read frame from video")
-    
-    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    return Image.fromarray(frame_rgb)
+    return Image.fromarray(img_array)
 
 def get_image_download_link(img, filename="image.png"):
     """Create download link for image"""
@@ -389,80 +217,28 @@ def get_image_download_link(img, filename="image.png"):
     img_str = base64.b64encode(buffered.getvalue()).decode()
     return f'<a href="data:image/png;base64,{img_str}" download="{filename}">📥 Download</a>'
 
-# Advanced Prompt Engineering
-def enhance_prompt(prompt, style="none", quality_boost=True):
-    """Enhance prompts with style and quality keywords"""
-    enhanced = prompt.strip()
-    
-    # Add style-specific keywords
-    style_keywords = {
-        "photorealistic": "photorealistic, 8k uhd, high quality, detailed, professional photography",
-        "artistic": "artistic, painterly, creative, expressive, masterpiece",
-        "cinematic": "cinematic lighting, dramatic, film grain, depth of field, bokeh",
-        "anime": "anime style, manga, cel shaded, vibrant colors, detailed",
-        "fantasy": "fantasy art, magical, ethereal, mystical, enchanted",
-        "scifi": "sci-fi, futuristic, cyberpunk, neon, high tech",
-        "vintage": "vintage, retro, nostalgic, film photography, aged",
-        "minimalist": "minimalist, clean, simple, modern, elegant"
-    }
-    
-    if style in style_keywords:
-        enhanced += f", {style_keywords[style]}"
-    
-    # Add quality boosters
-    if quality_boost:
-        enhanced += ", highly detailed, sharp focus, professional"
-    
-    return enhanced
-
-def generate_negative_prompt(quality_level="high"):
-    """Generate comprehensive negative prompts"""
-    base_negative = "blurry, low quality, distorted, deformed, ugly, bad anatomy"
-    
-    if quality_level == "high":
-        return base_negative + ", watermark, signature, text, jpeg artifacts, worst quality, low resolution, grainy, pixelated, amateur"
-    elif quality_level == "medium":
-        return base_negative + ", watermark, low resolution"
-    else:
-        return base_negative
-
-# Prompt templates for different use cases
-PROMPT_TEMPLATES = {
-    "Portrait": "portrait of {subject}, professional photography, studio lighting, detailed face, 8k",
-    "Landscape": "beautiful landscape of {subject}, golden hour, dramatic sky, highly detailed, 8k",
-    "Product": "product photography of {subject}, white background, professional lighting, commercial",
-    "Architecture": "architectural photography of {subject}, modern design, clean lines, professional",
-    "Food": "food photography of {subject}, appetizing, professional lighting, macro detail",
-    "Abstract": "abstract art of {subject}, creative, colorful, artistic, unique perspective",
-    "Character": "character design of {subject}, full body, detailed, concept art, professional",
-    "Interior": "interior design of {subject}, modern, elegant, well-lit, architectural digest"
-}
-
-# Random art generation for "This Art Does Not Exist" mode
+# Random art generation
 ART_STYLES = [
     "abstract expressionism", "surrealism", "impressionism", "cubism", "pop art",
-    "minimalism", "art nouveau", "baroque", "renaissance", "contemporary art",
-    "digital art", "concept art", "fantasy art", "sci-fi art", "cyberpunk art",
-    "steampunk art", "watercolor painting", "oil painting", "acrylic painting"
+    "minimalism", "art nouveau", "digital art", "concept art", "fantasy art",
+    "sci-fi art", "cyberpunk art", "watercolor painting", "oil painting"
 ]
 
 ART_SUBJECTS = [
     "cosmic landscape", "mystical forest", "futuristic cityscape", "abstract composition",
     "ethereal portrait", "dreamlike scenery", "geometric patterns", "organic forms",
     "celestial bodies", "underwater world", "mountain vista", "desert landscape",
-    "tropical paradise", "winter wonderland", "autumn forest", "spring meadow",
-    "urban architecture", "ancient ruins", "magical realm", "alien planet"
+    "tropical paradise", "winter wonderland", "magical realm", "alien planet"
 ]
 
 ART_MOODS = [
     "vibrant and energetic", "calm and serene", "dark and mysterious",
     "bright and cheerful", "dramatic and intense", "peaceful and tranquil",
-    "chaotic and dynamic", "elegant and refined", "bold and striking"
+    "bold and striking", "elegant and refined"
 ]
 
 def generate_random_art_prompt():
-    """Generate random art prompt for 'This Art Does Not Exist' mode"""
-    import random
+    """Generate random art prompt"""
     style = random.choice(ART_STYLES)
     subject = random.choice(ART_SUBJECTS)
     mood = random.choice(ART_MOODS)
@@ -470,19 +246,54 @@ def generate_random_art_prompt():
     quality = ", ".join(random.sample(quality_words, 3))
     return f"{subject} in {style} style, {mood}, {quality}, 8k"
 
+# 3D Model generation
+MODEL_TYPES = [
+    "character", "creature", "robot", "vehicle", "weapon", "prop",
+    "building", "furniture", "plant", "crystal", "artifact", "tool",
+    "spaceship", "mech", "dragon", "monster", "alien", "fantasy item"
+]
+
+MODEL_STYLES = [
+    "low poly", "high poly", "stylized", "realistic", "cartoon",
+    "sci-fi", "fantasy", "steampunk", "cyberpunk", "medieval",
+    "futuristic", "organic", "mechanical", "geometric"
+]
+
+MODEL_MATERIALS = [
+    "metallic", "wooden", "stone", "glass", "crystal", "plastic",
+    "leather", "glowing", "rusty", "polished"
+]
+
+MODEL_DETAILS = [
+    "highly detailed", "intricate design", "clean topology", "game ready",
+    "cinematic quality", "professional", "textured", "PBR materials"
+]
+
+CAMERA_ANGLES = ["front view", "side view", "three-quarter view", "back view"]
+
+def generate_random_3d_prompt(angle):
+    """Generate random 3D model prompt for specific angle"""
+    model_type = random.choice(MODEL_TYPES)
+    style = random.choice(MODEL_STYLES)
+    material = random.choice(MODEL_MATERIALS)
+    details = random.sample(MODEL_DETAILS, 2)
+    
+    prompt = f"{style} {material} {model_type}, {angle}, {', '.join(details)}, 3D render, white background, product shot, studio lighting, 8k"
+    return prompt, model_type
+
 # Main UI
-st.markdown('<h1 class="title-gradient">🎨 Advanced AI Image Studio</h1>', unsafe_allow_html=True)
-st.markdown('<p style="text-align: center; font-size: 1.2rem; color: #666; margin-bottom: 2rem;">Professional-Grade Image Generation for College Projects</p>', unsafe_allow_html=True)
+st.markdown('<h1 class="title-gradient">🎨 AI Image Studio - Fast Edition</h1>', unsafe_allow_html=True)
+st.markdown('<p style="text-align: center; font-size: 1.2rem; color: white; margin-bottom: 2rem;">⚡ Powered by LCM - 10x Faster Generation!</p>', unsafe_allow_html=True)
 
 # Feature badges
 st.markdown("""
 <div style="text-align: center; margin-bottom: 2rem;">
-    <span class="feature-badge">🎨 Multiple AI Models</span>
-    <span class="feature-badge">✨ Style Transfer</span>
-    <span class="feature-badge">🔧 Advanced Controls</span>
-    <span class="feature-badge">📊 Quality Analytics</span>
-    <span class="feature-badge">🚀 API Integration</span>
+    <span class="feature-badge">⚡ LCM Model (Super Fast)</span>
+    <span class="feature-badge">🎨 Text-to-Image</span>
+    <span class="feature-badge">🖼️ Image-to-Image</span>
     <span class="feature-badge">🎭 Artistic Filters</span>
+    <span class="feature-badge">🎲 Random Art</span>
+    <span class="feature-badge">🎲 Random 3D Models</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -492,33 +303,18 @@ if "image_history" not in st.session_state:
 if "generation_stats" not in st.session_state:
     st.session_state.generation_stats = {"total": 0, "total_time": 0}
 
-# Load models
-with st.spinner("🚀 Loading AI models..."):
-    model_choice_map = {
-        "⚡ LCM (FASTEST - 4-8 steps, 10-30 sec)": "lcm",
-        "Stable Diffusion v1.5 (Balanced)": "sd-v1-5",
-        "Realistic Vision (Photorealistic)": "realistic-vision",
-        "DreamShaper (Artistic)": "dreamshaper"
-    }
-    
-    selected_model = st.sidebar.selectbox(
-        "🤖 AI Model",
-        list(model_choice_map.keys()),
-        help="Choose the AI model based on your desired output style. LCM is 10x faster!"
-    )
-    
-    model_key = model_choice_map[selected_model]
-    models, status_messages = load_models(model_key)
+# Load model
+with st.spinner("🚀 Loading LCM model (fast!)..."):
+    models, status_messages = load_models()
     
     if models:
-        clip_processor, clip_model = load_clip_model()
         for msg_type, msg in status_messages:
             if msg_type == "success":
                 st.sidebar.success(msg)
             elif msg_type == "error":
                 st.sidebar.error(msg)
     else:
-        st.error("Failed to load models. Please check your setup.")
+        st.error("Failed to load model. Please check your setup.")
         st.stop()
 
 # Sidebar controls
@@ -528,20 +324,9 @@ st.sidebar.markdown("### 🎨 Generation Settings")
 # Mode selection
 mode = st.sidebar.selectbox(
     "Generation Mode",
-    ["Text-to-Image", "Image-to-Image", "Video-to-Image", "Batch Generation", "🎨 This Art Does Not Exist"],
-    help="Select the type of generation you want to perform"
+    ["Text-to-Image", "Image-to-Image", "🎲 Random Art Generator", "🎲 Random 3D Model (4 Angles)"],
+    help="Select the type of generation"
 )
-
-# API option
-use_api = st.sidebar.checkbox(
-    "🚀 Use HuggingFace API (Fast)",
-    value=False,
-    help="Use cloud GPU for 10x faster generation (Text-to-Image only)"
-)
-
-if use_api and not HF_TOKEN:
-    st.sidebar.error("⚠️ HF_TOKEN required in .env file")
-    use_api = False
 
 # Main content area
 col1, col2 = st.columns([1, 1])
@@ -549,11 +334,11 @@ col1, col2 = st.columns([1, 1])
 with col1:
     st.markdown("### 📝 Prompt Configuration")
     
-    # Special handling for "This Art Does Not Exist" mode
-    if mode == "🎨 This Art Does Not Exist":
-        st.info("🎨 **Random Art Mode**: Click generate to create a unique, random artwork!")
+    # Special handling for Random Art mode
+    if mode == "🎲 Random Art Generator":
+        st.info("🎲 **Random Art Mode**: Click generate to create a unique artwork!")
         
-        if st.button("🎲 Generate Random Prompt", use_container_width=True):
+        if st.button("🎲 Generate New Random Prompt", use_container_width=True):
             st.session_state.random_prompt = generate_random_art_prompt()
         
         if "random_prompt" not in st.session_state:
@@ -561,41 +346,37 @@ with col1:
         
         prompt = st.session_state.random_prompt
         st.text_area("Generated Prompt", prompt, height=100, disabled=True)
-        
-        st.markdown("**✨ Every generation creates a completely unique artwork!**")
-    else:
-        # Prompt template
-        use_template = st.checkbox("Use Prompt Template", value=False)
-        if use_template:
-            template_type = st.selectbox("Template Type", list(PROMPT_TEMPLATES.keys()))
-            subject = st.text_input("Subject", "a beautiful sunset")
-            prompt = PROMPT_TEMPLATES[template_type].format(subject=subject)
-            st.info(f"Generated prompt: {prompt}")
-        else:
-            prompt = st.text_area(
-                "Your Prompt",
-                "a serene mountain landscape at sunset, golden hour lighting, highly detailed",
-                height=100,
-                help="Describe what you want to generate"
-            )
     
-    # Style enhancement
-    style_preset = st.selectbox(
-        "Style Preset",
-        ["none", "photorealistic", "artistic", "cinematic", "anime", "fantasy", "scifi", "vintage", "minimalist"],
-        help="Apply style-specific enhancements to your prompt"
-    )
+    # Special handling for Random 3D Model mode
+    elif mode == "🎲 Random 3D Model (4 Angles)":
+        st.info("🎲 **Random 3D Model Mode**: Fully automatic! Just click generate!")
+        st.warning("⚠️ Generates 4 angles automatically (front, side, 3/4, back). Takes 20-60 seconds.")
+        
+        st.markdown("**What you'll get:**")
+        st.markdown("- 🎲 Completely random 3D model")
+        st.markdown("- 📐 4 different camera angles")
+        st.markdown("- 🎨 Random type, style, and materials")
+        st.markdown("- ⚡ No prompts needed!")
+        
+        prompt = ""  # Will be generated per angle
+    
+    else:
+        prompt = st.text_area(
+            "Your Prompt",
+            "a serene mountain landscape at sunset, golden hour lighting, highly detailed",
+            height=100,
+            help="Describe what you want to generate"
+        )
     
     # Negative prompt
-    neg_quality = st.selectbox("Negative Prompt Quality", ["high", "medium", "low"])
     negative_prompt = st.text_area(
         "Negative Prompt (Optional)",
-        generate_negative_prompt(neg_quality),
-        height=80,
+        "blurry, low quality, distorted, deformed, ugly, bad anatomy, watermark",
+        height=60,
         help="Things to avoid in the generation"
     )
     
-    # File uploads for img2img and video2img
+    # File upload for img2img
     input_image = None
     if mode == "Image-to-Image":
         uploaded_file = st.file_uploader("Upload Reference Image", type=["png", "jpg", "jpeg"])
@@ -603,38 +384,33 @@ with col1:
             input_image = Image.open(uploaded_file)
             st.image(input_image, caption="Reference Image", use_container_width=True)
     
-    elif mode == "Video-to-Image":
-        uploaded_video = st.file_uploader("Upload Video", type=["mp4", "avi", "mov"])
-        if uploaded_video:
-            try:
-                input_image = extract_first_frame(uploaded_video.getvalue())
-                st.image(input_image, caption="Extracted Frame", use_container_width=True)
-            except Exception as e:
-                st.error(f"Error extracting frame: {e}")
-    
     # Advanced settings
     with st.expander("⚙️ Advanced Settings"):
         col_a, col_b = st.columns(2)
         
         with col_a:
-            if mode == "🎨 This Art Does Not Exist":
-                num_images = 1  # Always 1 for random art mode
-                st.info("Random Art Mode: 1 image per generation")
+            if mode == "🎲 Random Art Generator":
+                num_images = 1
+                st.info("Random Art: 1 image per generation")
+            elif mode == "🎲 Random 3D Model (4 Angles)":
+                num_images = 4
+                st.info("3D Model: 4 angles (front, side, 3/4, back)")
             else:
                 num_images = st.slider("Number of Images", 1, 4, 1)
             
-            width = st.select_slider("Width", [384, 448, 512, 576, 640], value=512)
-            height = st.select_slider("Height", [384, 448, 512, 576, 640], value=512)
-            steps = st.slider("Inference Steps", 10, 50, 15 if mode == "🎨 This Art Does Not Exist" else 20)
+            width = st.select_slider("Width", [256, 384, 512, 640, 768], value=512)
+            height = st.select_slider("Height", [256, 384, 512, 640, 768], value=512)
         
         with col_b:
-            guidance_scale = st.slider("Guidance Scale", 5.0, 15.0, 7.5, 0.5)
-            if mode in ["Image-to-Image", "Video-to-Image"]:
-                strength = st.slider("Transformation Strength", 0.0, 1.0, 0.75, 0.05)
+            steps = st.slider("Steps (LCM: 4-8 optimal)", 4, 12, 6)
+            guidance_scale = st.slider("Guidance (LCM: 1.0-1.5)", 1.0, 2.0, 1.0, 0.1)
             
-            if mode == "🎨 This Art Does Not Exist":
-                seed = -1  # Always random for this mode
-                st.info("Random Art Mode: Random seed")
+            if mode == "Image-to-Image":
+                strength = st.slider("Transformation Strength", 0.3, 1.0, 0.75, 0.05)
+            
+            if mode in ["🎲 Random Art Generator", "🎲 Random 3D Model (4 Angles)"]:
+                seed = -1
+                st.info("Random seed for unique generation")
             else:
                 seed = st.number_input("Seed (-1 for random)", -1, 999999, -1)
     
@@ -643,14 +419,12 @@ with col1:
         col_c, col_d = st.columns(2)
         
         with col_c:
-            upscale_factor = st.selectbox("Upscale", ["None", "1.5x", "2x", "3x"])
-            brightness = st.slider("Brightness", 0.5, 1.5, 1.0, 0.1)
-            contrast = st.slider("Contrast", 0.5, 1.5, 1.0, 0.1)
+            brightness = st.slider("Brightness", 0.7, 1.3, 1.0, 0.1)
+            contrast = st.slider("Contrast", 0.7, 1.3, 1.0, 0.1)
         
         with col_d:
-            saturation = st.slider("Saturation", 0.5, 1.5, 1.0, 0.1)
-            sharpness = st.slider("Sharpness", 0.5, 2.0, 1.0, 0.1)
-            denoise = st.checkbox("Apply Denoising", value=False)
+            saturation = st.slider("Saturation", 0.7, 1.3, 1.0, 0.1)
+            sharpness = st.slider("Sharpness", 0.7, 1.5, 1.0, 0.1)
     
     # Artistic filters
     with st.expander("🎨 Artistic Filters"):
@@ -661,8 +435,10 @@ with col1:
         )
     
     # Generate button
-    if mode == "🎨 This Art Does Not Exist":
-        generate_btn = st.button("🎨 Generate Random Art", use_container_width=True)
+    if mode == "🎲 Random Art Generator":
+        generate_btn = st.button("🎲 Generate Random Art", use_container_width=True)
+    elif mode == "🎲 Random 3D Model (4 Angles)":
+        generate_btn = st.button("� Geneerate Random 3D Model", use_container_width=True)
     else:
         generate_btn = st.button("🎨 Generate Images", use_container_width=True)
 
@@ -670,17 +446,24 @@ with col2:
     st.markdown("### 🖼️ Generated Images")
     
     if generate_btn:
-        if not prompt:
+        if not prompt and mode not in ["🎲 Random Art Generator", "🎲 Random 3D Model (4 Angles)"]:
             st.error("Please enter a prompt")
         else:
-            # For "This Art Does Not Exist" mode, generate new random prompt
-            if mode == "🎨 This Art Does Not Exist":
+            # For Random Art mode, generate new prompt
+            if mode == "🎲 Random Art Generator":
                 prompt = generate_random_art_prompt()
                 st.session_state.random_prompt = prompt
-                enhanced_prompt = prompt  # Already enhanced
-            else:
-                # Enhance prompt
-                enhanced_prompt = enhance_prompt(prompt, style_preset, quality_boost=True)
+            
+            # For Random 3D Model mode, generate prompts for each angle
+            if mode == "🎲 Random 3D Model (4 Angles)":
+                # Generate seed once for consistency across angles
+                model_seed = random.randint(0, 999999)
+                angle_prompts = []
+                model_type = ""
+                for angle in CAMERA_ANGLES:
+                    angle_prompt, model_type = generate_random_3d_prompt(angle)
+                    angle_prompts.append((angle, angle_prompt))
+                st.session_state.model_type_preview = model_type
             
             start_time = time.time()
             progress_bar = st.progress(0)
@@ -689,108 +472,69 @@ with col2:
             generated_images = []
             
             try:
-                if use_api and mode == "Text-to-Image":
-                    # Use HuggingFace API with updated endpoint
-                    try:
-                        from huggingface_hub import InferenceClient
-                        client = InferenceClient(token=HF_TOKEN)
-                        
-                        for i in range(num_images):
-                            status_text.text(f"Generating via API {i+1}/{num_images}...")
-                            progress_bar.progress((i + 1) / num_images)
-                            
-                            # Use faster SDXL Turbo model
-                            image = client.text_to_image(
-                                prompt=enhanced_prompt,
-                                model="stabilityai/sdxl-turbo",
-                                negative_prompt=negative_prompt,
-                                num_inference_steps=min(steps, 4),  # Turbo needs only 1-4 steps
-                                guidance_scale=0.0,  # Turbo doesn't use guidance
-                                width=width,
-                                height=height
-                            )
-                    except Exception as api_error:
-                        st.error(f"API Error: {api_error}")
-                        st.info("Falling back to local generation...")
-                        use_api = False
-                        
-                        # Post-processing
-                        if upscale_factor != "None":
-                            scale = float(upscale_factor.replace("x", ""))
-                            image = advanced_upscale(image, scale)
-                        
-                        image = enhance_image_advanced(
-                            image, brightness, contrast, saturation, sharpness, denoise
-                        )
-                        
-                        if artistic_style != "none":
-                            image = apply_style_transfer(image, artistic_style)
-                        
-                        generated_images.append(image)
+                pipe = models['txt2img'] if mode != "Image-to-Image" else models['img2img']
+                device = models['device']
                 
-                else:
-                    # Use local model
-                    pipe = models['txt2img'] if mode == "Text-to-Image" else models['img2img']
-                    
-                    with torch.inference_mode():
-                        for i in range(num_images):
-                            status_text.text(f"Generating locally {i+1}/{num_images}...")
-                            progress_bar.progress((i + 1) / num_images)
-                            
+                with torch.inference_mode():
+                    for i in range(num_images):
+                        # For 3D Model mode, use angle-specific prompts
+                        if mode == "🎲 Random 3D Model (4 Angles)":
+                            angle, current_prompt = angle_prompts[i]
+                            status_text.text(f"Generating {angle}... ({i+1}/{num_images})")
+                            generator = torch.Generator(device=device).manual_seed(model_seed)
+                        else:
+                            current_prompt = prompt
+                            status_text.text(f"Generating {i+1}/{num_images}... (LCM is fast!)")
                             # Set seed
                             if seed >= 0:
-                                generator = torch.Generator(device="cpu").manual_seed(seed + i)
+                                generator = torch.Generator(device=device).manual_seed(seed + i)
                             else:
                                 generator = None
+                        
+                        progress_bar.progress((i + 1) / num_images)
+                        
+                        if mode != "Image-to-Image":
+                            image = pipe(
+                                prompt=current_prompt,
+                                negative_prompt=negative_prompt,
+                                num_inference_steps=steps,
+                                guidance_scale=guidance_scale,
+                                width=width,
+                                height=height,
+                                generator=generator
+                            ).images[0]
+                        else:
+                            if input_image is None:
+                                st.error("Please upload an image")
+                                break
                             
-                            if mode == "Text-to-Image":
-                                image = pipe(
-                                    prompt=enhanced_prompt,
-                                    negative_prompt=negative_prompt,
-                                    num_inference_steps=steps,
-                                    guidance_scale=guidance_scale,
-                                    width=width,
-                                    height=height,
-                                    generator=generator
-                                ).images[0]
-                            else:
-                                if input_image is None:
-                                    st.error("Please upload an image/video")
-                                    break
-                                
-                                # Resize input image
-                                input_resized = input_image.resize((width, height), Image.Resampling.LANCZOS)
-                                
-                                image = pipe(
-                                    prompt=enhanced_prompt,
-                                    image=input_resized,
-                                    negative_prompt=negative_prompt,
-                                    num_inference_steps=steps,
-                                    guidance_scale=guidance_scale,
-                                    strength=strength,
-                                    generator=generator
-                                ).images[0]
+                            # Resize input image
+                            input_resized = input_image.resize((width, height), Image.Resampling.LANCZOS)
                             
-                            # Post-processing
-                            if upscale_factor != "None":
-                                scale = float(upscale_factor.replace("x", ""))
-                                image = advanced_upscale(image, scale)
-                            
-                            image = enhance_image_advanced(
-                                image, brightness, contrast, saturation, sharpness, denoise
-                            )
-                            
-                            if artistic_style != "none":
-                                image = apply_style_transfer(image, artistic_style)
-                            
-                            generated_images.append(image)
+                            image = pipe(
+                                prompt=current_prompt,
+                                image=input_resized,
+                                negative_prompt=negative_prompt,
+                                num_inference_steps=steps,
+                                guidance_scale=guidance_scale,
+                                strength=strength,
+                                generator=generator
+                            ).images[0]
+                        
+                        # Post-processing
+                        image = enhance_image(image, brightness, contrast, saturation, sharpness)
+                        
+                        if artistic_style != "none":
+                            image = apply_style_filter(image, artistic_style)
+                        
+                        generated_images.append(image)
                 
                 # Calculate stats
                 end_time = time.time()
                 generation_time = end_time - start_time
                 
                 # Update session state
-                st.session_state.image_history.extend([(img, enhanced_prompt) for img in generated_images])
+                st.session_state.image_history.extend([(img, prompt) for img in generated_images])
                 st.session_state.generation_stats["total"] += len(generated_images)
                 st.session_state.generation_stats["total_time"] += generation_time
                 
@@ -798,12 +542,21 @@ with col2:
                 progress_bar.empty()
                 status_text.empty()
                 
-                st.success(f"✅ Generated {len(generated_images)} image(s) in {generation_time:.2f}s")
+                st.success(f"✅ Generated {len(generated_images)} image(s) in {generation_time:.2f}s ({generation_time/len(generated_images):.2f}s each)")
                 
                 # Display images
                 if len(generated_images) == 1:
                     st.image(generated_images[0], use_container_width=True)
                     st.markdown(get_image_download_link(generated_images[0], "generated_0.png"), unsafe_allow_html=True)
+                elif mode == "🎲 Random 3D Model (4 Angles)":
+                    # Display 3D model angles with labels
+                    st.markdown(f"### 🎲 Random {model_type.title()} - 4 Angles")
+                    cols = st.columns(2)
+                    for idx, (img, (angle, _)) in enumerate(zip(generated_images, angle_prompts)):
+                        with cols[idx % 2]:
+                            st.markdown(f"**{angle.title()}**")
+                            st.image(img, use_container_width=True)
+                            st.markdown(get_image_download_link(img, f"3dmodel_{angle.replace(' ', '_')}.png"), unsafe_allow_html=True)
                 else:
                     cols = st.columns(2)
                     for idx, img in enumerate(generated_images):
@@ -812,8 +565,16 @@ with col2:
                 
                 # Show generation info
                 with st.expander("📊 Generation Details"):
-                    st.write(f"**Model:** {selected_model}")
-                    st.write(f"**Prompt:** {enhanced_prompt}")
+                    st.write(f"**Model:** LCM Dreamshaper v7 (Fast!)")
+                    st.write(f"**Device:** {device.upper()}")
+                    if mode == "🎲 Random 3D Model (4 Angles)":
+                        st.write(f"**Model Type:** {model_type.title()}")
+                        st.write(f"**Angles Generated:** {len(CAMERA_ANGLES)}")
+                        st.write("**Prompts:**")
+                        for angle, angle_prompt in angle_prompts:
+                            st.write(f"  - {angle.title()}: {angle_prompt}")
+                    else:
+                        st.write(f"**Prompt:** {prompt}")
                     st.write(f"**Negative:** {negative_prompt}")
                     st.write(f"**Settings:** {width}x{height}, {steps} steps, CFG {guidance_scale}")
                     st.write(f"**Time:** {generation_time:.2f}s ({generation_time/len(generated_images):.2f}s per image)")
@@ -828,7 +589,7 @@ with col2:
     
     # Show placeholder if no generation yet
     if not st.session_state.image_history:
-        st.info("👈 Configure your settings and click 'Generate Images' to start creating!")
+        st.info("👈 Configure your settings and click 'Generate' to start creating!")
 
 # Statistics Dashboard
 st.markdown("---")
@@ -863,11 +624,11 @@ with col_stat3:
     """, unsafe_allow_html=True)
 
 with col_stat4:
-    total_time_min = st.session_state.generation_stats['total_time'] / 60
+    device_name = models['device'].upper() if models else "N/A"
     st.markdown(f"""
     <div class="metric-card">
-        <div class="metric-value">{total_time_min:.1f}m</div>
-        <div class="metric-label">Total Time</div>
+        <div class="metric-value">{device_name}</div>
+        <div class="metric-label">Device</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -877,12 +638,10 @@ if st.session_state.image_history:
     st.markdown("### 🖼️ Image History Gallery")
     
     # Gallery controls
-    col_g1, col_g2, col_g3 = st.columns([2, 1, 1])
+    col_g1, col_g2 = st.columns([3, 1])
     with col_g1:
-        gallery_view = st.selectbox("View", ["Grid", "List", "Slideshow"])
+        show_count = st.selectbox("Show Recent", [8, 16, 24, "All"], index=0)
     with col_g2:
-        show_count = st.selectbox("Show", [8, 16, 24, "All"])
-    with col_g3:
         if st.button("🗑️ Clear History"):
             st.session_state.image_history = []
             st.rerun()
@@ -893,38 +652,19 @@ if st.session_state.image_history:
     else:
         display_images = st.session_state.image_history[-show_count:]
     
-    if gallery_view == "Grid":
-        cols = st.columns(4)
-        for idx, (img, prompt) in enumerate(reversed(display_images)):
-            with cols[idx % 4]:
-                st.image(img, use_container_width=True)
-                st.caption(prompt[:50] + "..." if len(prompt) > 50 else prompt)
-                st.markdown(get_image_download_link(img, f"history_{idx}.png"), unsafe_allow_html=True)
-    
-    elif gallery_view == "List":
-        for idx, (img, prompt) in enumerate(reversed(display_images)):
-            col_l1, col_l2 = st.columns([1, 2])
-            with col_l1:
-                st.image(img, use_container_width=True)
-            with col_l2:
-                st.markdown(f"**Prompt:** {prompt}")
-                st.markdown(get_image_download_link(img, f"history_{idx}.png"), unsafe_allow_html=True)
-            st.markdown("---")
-    
-    elif gallery_view == "Slideshow":
-        if display_images:
-            slide_idx = st.slider("Image", 0, len(display_images) - 1, 0)
-            img, prompt = display_images[-(slide_idx + 1)]
+    cols = st.columns(4)
+    for idx, (img, prompt) in enumerate(reversed(display_images)):
+        with cols[idx % 4]:
             st.image(img, use_container_width=True)
-            st.markdown(f"**Prompt:** {prompt}")
-            st.markdown(get_image_download_link(img, f"slideshow_{slide_idx}.png"), unsafe_allow_html=True)
+            st.caption(prompt[:40] + "..." if len(prompt) > 40 else prompt)
+            st.markdown(get_image_download_link(img, f"history_{idx}.png"), unsafe_allow_html=True)
 
 # Footer
 st.markdown("---")
 st.markdown("""
-<div style="text-align: center; color: #666; padding: 2rem;">
-    <p><strong>Advanced AI Image Studio</strong> - College Project</p>
-    <p>Powered by Stable Diffusion, HuggingFace Transformers, and Streamlit</p>
-    <p style="font-size: 0.9rem;">Features: Multiple AI Models • Style Transfer • Advanced Post-Processing • API Integration</p>
+<div style="text-align: center; color: white; padding: 2rem;">
+    <p><strong>AI Image Studio - Fast Edition</strong></p>
+    <p>Powered by LCM (Latent Consistency Model) - 10x Faster than SD v1.5!</p>
+    <p style="font-size: 0.9rem;">⚡ Only 4-8 steps needed • 🚀 GPU optimized • 💻 CPU friendly</p>
 </div>
 """, unsafe_allow_html=True)
