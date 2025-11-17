@@ -1,0 +1,27 @@
+# Core - Latest versions with better features
+torch>=2.3.0
+torchvision>=0.18.0
+transformers>=4.40.0
+diffusers>=0.30.0
+accelerate>=0.30.0
+safetensors>=0.4.0
+huggingface-hub>=0.23.0
+numpy>=1.26.0
+peft>=0.11.0
+
+# Image processing & enhancement
+opencv-python>=4.9.0
+pillow>=10.3.0
+scipy>=1.11.0
+
+# UI & Visualization
+streamlit>=1.35.0
+plotly>=5.18.0
+matplotlib>=3.8.0
+
+# Advanced features
+controlnet-aux>=0.0.7
+compel>=2.0.0
+
+# Optional GPU acceleration
+# xformers>=0.0.26

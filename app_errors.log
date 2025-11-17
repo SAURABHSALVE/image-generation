@@ -1,0 +1,76 @@
+2025-10-14 12:38:32,380 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-14 12:38:32,382 - ERROR - LCM-LoRA load failed: PEFT backend is required for this method.
+2025-10-14 12:38:32,384 - ERROR - Custom LoRA failed: PEFT backend is required for this method.
+2025-10-14 12:38:33,852 - WARNING - Xet Storage is enabled for this repo, but the 'hf_xet' package is not installed. Falling back to regular HTTP download. For better performance, install the package with: `pip install huggingface_hub[hf_xet]` or `pip install hf_xet`
+2025-10-14 12:41:43,770 - ERROR - Generation failed: PEFT backend is required for `set_adapters()`.
+2025-10-14 12:41:57,209 - ERROR - Generation failed: PEFT backend is required for `set_adapters()`.
+2025-10-14 12:46:55,524 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-14 12:46:55,748 - WARNING - Xet Storage is enabled for this repo, but the 'hf_xet' package is not installed. Falling back to regular HTTP download. For better performance, install the package with: `pip install huggingface_hub[hf_xet]` or `pip install hf_xet`
+2025-10-14 13:32:27,302 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-14 13:42:34,302 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-14 13:43:49,673 - ERROR - Generation failed: 
+2025-10-14 13:54:00,118 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-14 14:03:41,180 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-14 19:15:27,850 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-14 19:16:46,821 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-14 19:22:36,326 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-14 22:59:05,524 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-14 23:03:50,404 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-14 23:40:38,689 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-14 23:49:32,205 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-14 23:57:09,035 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-15 00:02:03,295 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-15 00:08:13,623 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-15 00:12:45,634 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-15 00:20:28,668 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-15 00:25:21,584 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-15 00:29:16,935 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-15 00:32:08,636 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-15 00:34:22,718 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-15 00:43:03,393 - ERROR - Quantization failed: Linear8bitLt.__init__() missing 1 required positional argument: 'output_features'
+2025-10-15 01:34:10,984 - ERROR - Failed to load model sd-v1-5: Error no file named model.safetensors found in directory C:\Users\vinit\.cache\huggingface\hub\models--runwayml--stable-diffusion-v1-5\snapshots\451f4fe16113bff5a5d2269ed5ad43b0592e9a14\safety_checker.
+2025-10-15 01:45:36,720 - ERROR - Generation failed: Adapter name(s) {'default'} not in the list of present adapters: {'default_0'}.
+2025-10-15 01:45:57,344 - ERROR - Generation failed: Adapter name(s) {'default'} not in the list of present adapters: {'default_0'}.
+2025-10-15 10:44:42,331 - WARNING - '(MaxRetryError('HTTPSConnectionPool(host=\'huggingface.co\', port=443): Max retries exceeded with url: /latent-consistency/lcm-lora-sdv1-5/resolve/main/pytorch_lora_weights.safetensors (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001758B48F770>: Failed to resolve \'huggingface.co\' ([Errno 11001] getaddrinfo failed)"))'), '(Request ID: 9cfa5ad5-2b99-47e7-a188-2c594aecbd3d)')' thrown while requesting HEAD https://huggingface.co/latent-consistency/lcm-lora-sdv1-5/resolve/main/pytorch_lora_weights.safetensors
+2025-10-15 10:44:42,334 - WARNING - Retrying in 1s [Retry 1/5].
+2025-10-15 10:44:55,349 - WARNING - '(MaxRetryError('HTTPSConnectionPool(host=\'huggingface.co\', port=443): Max retries exceeded with url: /latent-consistency/lcm-lora-sdv1-5/resolve/main/pytorch_lora_weights.safetensors (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001758B48F740>: Failed to resolve \'huggingface.co\' ([Errno 11001] getaddrinfo failed)"))'), '(Request ID: 982d7bd9-2b46-4cf1-b457-408a11c8527a)')' thrown while requesting HEAD https://huggingface.co/latent-consistency/lcm-lora-sdv1-5/resolve/main/pytorch_lora_weights.safetensors
+2025-10-15 10:44:55,350 - WARNING - Retrying in 2s [Retry 2/5].
+2025-10-15 10:45:09,364 - WARNING - '(MaxRetryError('HTTPSConnectionPool(host=\'huggingface.co\', port=443): Max retries exceeded with url: /latent-consistency/lcm-lora-sdv1-5/resolve/main/pytorch_lora_weights.safetensors (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x000001758C2775C0>: Failed to resolve \'huggingface.co\' ([Errno 11001] getaddrinfo failed)"))'), '(Request ID: 508f9c8c-9bf9-481e-a1ed-abc3df523a38)')' thrown while requesting HEAD https://huggingface.co/latent-consistency/lcm-lora-sdv1-5/resolve/main/pytorch_lora_weights.safetensors
+2025-10-15 10:45:09,364 - WARNING - Retrying in 4s [Retry 3/5].
+2025-10-15 10:45:52,336 - WARNING - '(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: 29f2d897-3c22-488b-927d-fc23051fca70)')' thrown while requesting HEAD https://huggingface.co/latent-consistency/lcm-lora-sdv1-5/resolve/main/pytorch_lora_weights.safetensors
+2025-10-15 10:45:52,337 - WARNING - Retrying in 8s [Retry 4/5].
+2025-10-15 10:46:54,881 - WARNING - '(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: 27baf105-028a-457d-8e86-dfd19d6173fd)')' thrown while requesting HEAD https://huggingface.co/openai/clip-vit-base-patch32/resolve/main/config.json
+2025-10-15 10:46:54,882 - WARNING - Retrying in 1s [Retry 1/5].
+2025-10-15 10:47:13,683 - WARNING - '(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: d2541641-2583-461f-9fe2-f458bd0845c7)')' thrown while requesting HEAD https://huggingface.co/api/resolve-cache/models/openai/clip-vit-base-patch32/3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268/config.json
+2025-10-15 10:47:13,684 - WARNING - Retrying in 1s [Retry 1/5].
+2025-10-15 10:47:27,751 - WARNING - '(ProtocolError('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None)), '(Request ID: 04a2bd66-34bf-4dd3-8cec-72a7ee1bf357)')' thrown while requesting HEAD https://huggingface.co/api/resolve-cache/models/openai/clip-vit-base-patch32/3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268/config.json
+2025-10-15 10:47:27,766 - WARNING - Retrying in 2s [Retry 2/5].
+2025-10-15 10:47:29,778 - WARNING - '(MaxRetryError('HTTPSConnectionPool(host=\'huggingface.co\', port=443): Max retries exceeded with url: /api/resolve-cache/models/openai/clip-vit-base-patch32/3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268/config.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000175B8CBA2D0>: Failed to resolve \'huggingface.co\' ([Errno 11001] getaddrinfo failed)"))'), '(Request ID: caf692fa-23ba-421a-a74d-b87200c9279e)')' thrown while requesting HEAD https://huggingface.co/api/resolve-cache/models/openai/clip-vit-base-patch32/3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268/config.json
+2025-10-15 10:47:29,779 - WARNING - Retrying in 4s [Retry 3/5].
+2025-10-15 10:47:33,785 - WARNING - '(MaxRetryError('HTTPSConnectionPool(host=\'huggingface.co\', port=443): Max retries exceeded with url: /api/resolve-cache/models/openai/clip-vit-base-patch32/3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268/config.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000175B8B98B90>: Failed to resolve \'huggingface.co\' ([Errno 11001] getaddrinfo failed)"))'), '(Request ID: 87e8671b-431e-4df0-9b3f-292e50aa55cb)')' thrown while requesting HEAD https://huggingface.co/api/resolve-cache/models/openai/clip-vit-base-patch32/3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268/config.json
+2025-10-15 10:47:33,786 - WARNING - Retrying in 8s [Retry 4/5].
+2025-11-04 12:46:16,857 - WARNING - Xet Storage is enabled for this repo, but the 'hf_xet' package is not installed. Falling back to regular HTTP download. For better performance, install the package with: `pip install huggingface_hub[hf_xet]` or `pip install hf_xet`
+2025-11-04 12:53:24,035 - ERROR - Model loading failed: CLIPTextModel.__init__() got an unexpected keyword argument 'offload_state_dict'
+2025-11-04 12:59:57,631 - ERROR - Model loading failed: CLIPTextModel.__init__() got an unexpected keyword argument 'offload_state_dict'
+2025-11-04 13:04:19,197 - ERROR - Model loading failed: CLIPTextModel.__init__() got an unexpected keyword argument 'offload_state_dict'
+2025-11-04 13:26:14,257 - ERROR - Model loading failed: CLIPTextModel.__init__() got an unexpected keyword argument 'offload_state_dict'
+2025-11-04 22:39:27,249 - ERROR - Custom LoRA failed: PEFT backend is required for this method.
+2025-11-04 22:43:54,468 - ERROR - Generation failed: PEFT backend is required for `set_adapters()`.
+2025-11-05 22:19:17,747 - ERROR - Generation failed: float division by zero
+2025-11-05 22:20:02,581 - ERROR - Generation failed: float division by zero
+2025-11-05 22:23:31,125 - ERROR - Generation failed: 410 Client Error: Gone for url: https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0
+
+https://api-inference.huggingface.co is no longer supported. Please use https://router.huggingface.co/hf-inference instead.
+2025-11-05 22:23:32,194 - ERROR - Generation failed: 410 Client Error: Gone for url: https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0
+
+https://api-inference.huggingface.co is no longer supported. Please use https://router.huggingface.co/hf-inference instead.
+2025-11-05 22:23:32,810 - ERROR - Generation failed: 410 Client Error: Gone for url: https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0
+
+https://api-inference.huggingface.co is no longer supported. Please use https://router.huggingface.co/hf-inference instead.
+2025-11-05 22:23:32,812 - ERROR - Generation failed: 410 Client Error: Gone for url: https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0
+
+https://api-inference.huggingface.co is no longer supported. Please use https://router.huggingface.co/hf-inference instead.
+2025-11-05 22:23:35,016 - ERROR - Generation failed: 410 Client Error: Gone for url: https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0
+
+https://api-inference.huggingface.co is no longer supported. Please use https://router.huggingface.co/hf-inference instead.
+2025-11-05 23:06:04,268 - ERROR - Generation failed: name 'image' is not defined
